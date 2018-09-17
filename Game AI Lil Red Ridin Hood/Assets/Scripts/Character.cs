@@ -25,7 +25,7 @@ public class Character : MonoBehaviour
 	{
 		selfBody = gameObject.GetComponent<Rigidbody>();
 		Random.InitState(randomSeed);
-		transform.position = new Vector3(Mathf.Clamp(Random.value * mapBounds, 5, mapBounds - 5), 10, Mathf.Clamp(Random.value * mapBounds, 5, mapBounds - 5));
+		transform.position = new Vector3(Mathf.Clamp(Random.value * mapBounds, 10, mapBounds - 10), 10, Mathf.Clamp(Random.value * mapBounds, 10, mapBounds - 10));
 		LayerMask groundMask = 1 << 9;
 		Ray ray = new Ray(transform.position, -transform.up);
 		RaycastHit hit = new RaycastHit();
@@ -40,7 +40,7 @@ public class Character : MonoBehaviour
 		if (starting)
 		{
 			t += Time.deltaTime;
-			if (t >= 3)
+			if (t >= 1.5f)
 			{
 				t = 0;
 				starting = false;
@@ -58,7 +58,7 @@ public class Character : MonoBehaviour
 					{
 						float rad = Mathf.PI * Random.value * 2;
 						Vector3 newPos = transform.position + 30 * head.transform.forward + new Vector3(Mathf.Cos(rad) * 20, 0, Mathf.Sin(rad) * 20);
-						newPos = new Vector3(Mathf.Clamp(newPos.x, 5, mapBounds - 5), 10, Mathf.Clamp(newPos.z, 5, mapBounds - 5));
+						newPos = new Vector3(Mathf.Clamp(newPos.x, 10, mapBounds - 10), 10, Mathf.Clamp(newPos.z, 10, mapBounds - 10));
 						wanderGoal.transform.position = newPos;
 						ray = new Ray(wanderGoal.transform.position, -wanderGoal.transform.up);
 						hit = new RaycastHit();
@@ -98,9 +98,9 @@ public class Character : MonoBehaviour
 					{
 						if (willKill)
 						{
-							if (Vector3.Distance(transform.position, goal) < 2)
+							if (Vector3.Distance(transform.position, goal) < 1.2)
 							{
-								Destroy(chaseGoal);
+								chaseGoal.GetComponent<Character>().killSelf();
 								chaseGoal = new GameObject();
 								chaseGoal.transform.position = new Vector3(0, 100, 0);
 								state = defaultState;
@@ -126,22 +126,23 @@ public class Character : MonoBehaviour
 
 	void FixedUpdate()
 	{
-		Quaternion look = new Quaternion();
+		Vector3 goalDir = Vector3.zero;
 		switch (state)
 		{
 			case ((int)status.wandering):
-				look = Quaternion.LookRotation(wanderGoal.transform.position - transform.position);
+				goalDir = wanderGoal.transform.position - transform.position;
 				break;
 			case ((int)status.chasing):
-				look = Quaternion.LookRotation(chaseGoal.transform.position - transform.position);
+				goalDir = chaseGoal.transform.position - transform.position;
 				break;
 			case ((int)status.fleeing):
-				look = Quaternion.LookRotation(transform.position - fleeGoal.transform.position);
+				goalDir = transform.position - fleeGoal.transform.position;
 				break;
 			default:
 				break;
 		}
-		head.transform.rotation = Quaternion.Slerp(head.transform.rotation, look, .15f);
+		Quaternion look = Quaternion.LookRotation(goalDir + selfBody.velocity * 5);
+		head.transform.rotation = Quaternion.Slerp(head.transform.rotation, look, .03f);
 		head.transform.position = transform.position + new Vector3(0, .3f, 0);
 	}
 
@@ -171,5 +172,10 @@ public class Character : MonoBehaviour
 			selfBody.AddForce(direction + (direction - (transform.position - movement)) * moveForce * moveVariance / 15);
 
 		selfBody.AddForce(new Vector3(0, (1 - moveSpeed), 0));
+	}
+
+	public void killSelf()
+	{
+
 	}
 }

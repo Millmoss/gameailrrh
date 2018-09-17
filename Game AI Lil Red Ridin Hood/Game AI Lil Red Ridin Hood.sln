@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assembly-CSharp", "Assembly-CSharp.csproj", "{57E4E854-1C22-537B-FD8A-3680309D5A47}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Game AI Lil Red Ridin Hood", "Assembly-CSharp.csproj", "{57E4E854-1C22-537B-FD8A-3680309D5A47}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
