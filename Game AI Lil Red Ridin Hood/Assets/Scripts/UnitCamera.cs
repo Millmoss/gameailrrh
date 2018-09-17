@@ -122,7 +122,7 @@ public class UnitCamera : MonoBehaviour
 		LayerMask groundMask = 1 << 9;
 		Ray ray = new Ray(cameraFocus.transform.position, -cameraFocus.up);
 		RaycastHit hit = new RaycastHit();
-		if (Physics.Raycast(ray, out hit, 1000f, groundMask))
+		if (Physics.Raycast(ray, out hit, 25f, groundMask))
 		{
 			cameraFocus.position = hit.point + new Vector3(0, .3f);
 		}
