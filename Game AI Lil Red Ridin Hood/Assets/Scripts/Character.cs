@@ -7,6 +7,10 @@ public class Character : MonoBehaviour
 	public GameObject wanderGoal;
 	public GameObject chaseGoal;
 	public GameObject fleeGoal;
+	private Vector3 fleeDirection;
+	public GameObject pathGoal;
+	private ArrayList pathGoals;
+	private int pathIndex;
 	public GameObject head;
 	public float moveSpeed = 1;
 	public int mapBounds = 100;
@@ -14,12 +18,13 @@ public class Character : MonoBehaviour
 	private Rigidbody selfBody;
 	private float moveForce = 3;
 	private Vector3 movement;
-	private enum status { wandering, chasing, fleeing, pathing };
+	private enum status { wandering, chasing, fleeing, pathing, speaking, idle };
 	public int state = 0;
 	public int defaultState = 0;
 	public bool willKill = false;
 	private float t = 0;
 	private bool starting = true;
+	public GameObject radiusDisplay;
 
 	void Start ()
 	{
@@ -33,6 +38,16 @@ public class Character : MonoBehaviour
 		{
 			selfBody.position = hit.point + new Vector3(0, .8f, 0);
 		}
+		Transform[] pathTemp = pathGoal.GetComponentsInChildren<Transform>();
+		if (pathTemp.Length > 0)
+			for (int i = 0; i < pathTemp.Length; i++)
+			{
+				if (pathTemp[i].tag == "Pathing")
+					pathGoals.Add(pathTemp[i].gameObject);
+			}
+		else if (state == (int)status.pathing)
+			state = (int)status.idle;
+		pathIndex = 0;
 	}
 	
 	void Update ()
@@ -71,24 +86,10 @@ public class Character : MonoBehaviour
 					if (t > 5)
 						t = 0;
 					move(wanderGoal.transform.position);
-					ray = new Ray(transform.position, (chaseGoal.transform.position - transform.position).normalized);
-					hit = new RaycastHit();
-					if (Vector3.Distance(transform.position, chaseGoal.transform.position) < 20 && 
-						!Physics.Raycast(ray, out hit, Vector3.Distance(transform.position, chaseGoal.transform.position), groundMask))
-					{
-						state = (int)status.chasing;
-						wanderGoal.transform.position = Vector3.zero;
-					}
-					ray = new Ray(transform.position, (fleeGoal.transform.position - transform.position).normalized);
-					hit = new RaycastHit();
-					if (Vector3.Distance(transform.position, fleeGoal.transform.position) < 20 &&
-						!Physics.Raycast(ray, out hit, Vector3.Distance(transform.position, fleeGoal.transform.position), groundMask))
-					{
-						state = (int)status.fleeing;
-						wanderGoal.transform.position = Vector3.zero;
-					}
+					goalStat(0);
 					break;
 				case ((int)status.chasing):
+					t += Time.deltaTime;
 					Vector3 goal = chaseGoal.transform.position;
 					if (Vector3.Distance(transform.position, goal) > 5)
 					{
@@ -109,12 +110,40 @@ public class Character : MonoBehaviour
 						}
 						else
 						{
-							approach(goal);
+							approach(goal + chaseGoal.transform.forward * Vector3.Distance(chaseGoal.transform.position, transform.position) * 2);
 						}
 					}
+					goalStat(0);
 					break;
 				case ((int)status.fleeing):
-					
+					t += Time.deltaTime;
+					//move to goal
+					Vector3 direction = (transform.position - fleeGoal.transform.position).normalized;
+					selfBody.AddForce(fleeDirection * moveForce * moveSpeed / 1.5f);
+
+					//adjust movement for slope and pushback
+					float moveVariance = Vector3.Angle(transform.position - movement, direction);
+					if (moveVariance > 30)
+						selfBody.AddForce(direction + (direction - (transform.position - movement)) * moveForce * moveVariance / 2);
+
+					selfBody.AddForce(new Vector3(0, (1 - moveSpeed), 0));
+					goalStat(0);
+					break;
+				case ((int)status.pathing):
+					move(((GameObject)pathGoals[pathIndex]).transform.position);
+					if (Vector3.Distance(((GameObject)pathGoals[pathIndex]).transform.position, transform.position) < 3)
+					{
+						pathIndex++;
+						if (pathIndex >= pathGoals.Count)
+							state = (int)status.idle;
+					}
+					goalStat(0);
+					break;
+				case ((int)status.speaking):
+					goalStat(0);
+					break;
+				case ((int)status.idle):
+					goalStat(0);
 					break;
 				default:
 					break;
@@ -175,6 +204,51 @@ public class Character : MonoBehaviour
 	}
 
 	public void killSelf()
+	{
+		transform.position = new Vector3(-10, -10, -10);
+		selfBody.isKinematic = true;
+	}
+
+	void goalStat(int ignore)
+	{
+		LayerMask groundMask = 1 << 9;
+		Ray ray;
+		RaycastHit hit;
+		ray = new Ray(transform.position, (chaseGoal.transform.position - transform.position).normalized);
+		hit = new RaycastHit();
+		if (Vector3.Distance(transform.position, chaseGoal.transform.position) < 20 &&
+			!Physics.Raycast(ray, out hit, Vector3.Distance(transform.position, chaseGoal.transform.position), groundMask))
+		{
+			state = (int)status.chasing;
+			wanderGoal.transform.position = Vector3.zero;
+			t = 0;
+		}
+		else if (Physics.Raycast(ray, out hit, Vector3.Distance(transform.position, chaseGoal.transform.position), groundMask) &&
+			state == (int)status.chasing && t > 5)
+		{
+			state = defaultState;
+			t = 0;
+		}
+		ray = new Ray(transform.position, (fleeGoal.transform.position - transform.position).normalized);
+		hit = new RaycastHit();
+		if (Vector3.Distance(transform.position, fleeGoal.transform.position) < 10 &&
+			!Physics.Raycast(ray, out hit, Vector3.Distance(transform.position, fleeGoal.transform.position), groundMask))
+		{
+			state = (int)status.fleeing;
+			wanderGoal.transform.position = Vector3.zero;
+			fleeDirection = transform.position - fleeGoal.transform.position;
+			fleeDirection = fleeDirection.normalized;
+			t = 0;
+		}
+		else if (Physics.Raycast(ray, out hit, Vector3.Distance(transform.position, fleeGoal.transform.position), groundMask) &&
+			state == (int)status.fleeing && t > 10)
+		{
+			state = defaultState;
+			t = 0;
+		}
+	}
+
+	void displayInfo()
 	{
 
 	}
