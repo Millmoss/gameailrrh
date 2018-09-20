@@ -1,16 +1,34 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
-public class UIHandler : MonoBehaviour {
+public class UIHandler : MonoBehaviour
+{
+	private Queue<string> lines;
+	public Text text;
 
-	// Use this for initialization
-	void Start () {
-		
+	void Start ()
+	{
+		lines = new Queue<string>();
 	}
 	
-	// Update is called once per frame
-	void Update () {
-		
+	void Update ()
+	{
+		string t = "";
+		for (int i = 0; i < lines.Count; i++)
+		{
+			string l = lines.Dequeue();
+			lines.Enqueue(l);
+			t += l + "\n";
+		}
+		text.text = t;
+	}
+
+	public void addLine(string line)
+	{
+		lines.Enqueue(line);
+		if (lines.Count > 8)
+			lines.Dequeue();
 	}
 }
